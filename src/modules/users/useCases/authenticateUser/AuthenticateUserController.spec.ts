@@ -28,20 +28,13 @@ describe("Authenticate User Controller", () => {
     await connection.close();
   });
 
-  it("Should be able show an user", async () => {
-    const responseToken = await request(app).post("/api/v1/sessions").send({
+  it('should be able to authenticate an user', async () => {
+    const response = await request(app).post("/api/v1/sessions").send({
       password: "12345",
       email: "user@test.com.br",
     });
 
-    const { token, id } = responseToken.body;
-
-    const response = await request(app).get("/api/v1/profile")
-    .set({
-      Authorization: `Bearer ${token}`,
-    });
-
-    expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty("id");
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty("token");
   });
 });
