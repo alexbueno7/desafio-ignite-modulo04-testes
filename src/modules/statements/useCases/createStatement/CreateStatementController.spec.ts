@@ -23,6 +23,12 @@ describe("Create Statement Controller", () => {
       values('${id}', 'user', 'user@test.com.br', '${password}', 'now()', 'now()')
     `
     );
+
+    await connection.query(
+      `INSERT INTO USERS(id, name, email, password, created_at, updated_at)
+      values('7b28444b-5840-4159-9408-b0c9f326162d', 'user2', 'user2@test.com.br', '${password}', 'now()', 'now()')
+    `
+    );
   });
 
   afterAll(async () => {
@@ -91,4 +97,28 @@ describe("Create Statement Controller", () => {
 
     expect(response.status).toBe(401);
   });
+
+  it("should be able to create a new statement transfer", async () => {
+
+    const responseToken = await request(app).post("/api/v1/sessions").send({
+      password: "12345",
+      email: "user@test.com.br",
+    });
+
+    const { token } = responseToken.body
+
+    const url = `/api/v1/statements/transfer/7b28444b-5840-4159-9408-b0c9f326162d`
+
+    const response = await request(app).post(url).send({
+      amount: 50, description: "pizza"
+    }).set({
+      Authorization: `Bearer ${token}`
+    })
+
+    console.log(response.body)
+
+
+    expect(response.status).toBe(201)
+
+  })
 });

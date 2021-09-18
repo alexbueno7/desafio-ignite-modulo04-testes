@@ -1,6 +1,6 @@
 import { getRepository, Repository } from "typeorm";
 
-import { Statement } from "../entities/Statement";
+import { OperationType, Statement } from "../entities/Statement";
 import { ICreateStatementDTO } from "../useCases/createStatement/ICreateStatementDTO";
 import { IGetBalanceDTO } from "../useCases/getBalance/IGetBalanceDTO";
 import { IGetStatementOperationDTO } from "../useCases/getStatementOperation/IGetStatementOperationDTO";
@@ -17,13 +17,38 @@ export class StatementsRepository implements IStatementsRepository {
     user_id,
     amount,
     description,
-    type
+    type,
+    sender_id
   }: ICreateStatementDTO): Promise<Statement> {
+
+    if(type === OperationType.TRANSFER){
+      const senderTransferStatement = this.repository.create({
+        user_id: sender_id,
+        sender_id,
+        amount,
+        description,
+        type,
+      })
+
+      const receiverTransferStatement = this.repository.create({
+        user_id,
+        sender_id,
+        amount,
+        description,
+        type,
+      });
+
+      await this.repository.save(senderTransferStatement);
+
+      return this.repository.save(receiverTransferStatement);
+    }
+
     const statement = this.repository.create({
       user_id,
       amount,
       description,
-      type
+      type,
+      sender_id
     });
 
     return this.repository.save(statement);
@@ -46,11 +71,16 @@ export class StatementsRepository implements IStatementsRepository {
 
     const balance = statement.reduce((acc, operation) => {
       if (operation.type === 'deposit') {
-        return acc + operation.amount;
-      } else {
-        return acc - operation.amount;
+        return acc + Number(operation.amount);
+      } else if (operation.type === 'withdraw'){
+        return acc - Number(operation.amount);
+      } else if (operation.type === 'transfer'){
+        if(operation.sender_id === user_id){
+          return acc - Number(operation.amount);
+        }
+        return acc + Number(operation.amount);
       }
-    }, 0)
+    }, 0);
 
     if (with_statement) {
       return {
